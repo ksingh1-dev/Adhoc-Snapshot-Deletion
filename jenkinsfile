@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    // Define parameters for the Jenkins job
+    parameters {
+        string(name: 'AWS_ACCESS_KEY', defaultValue: '', description: 'AWS Access Key')
+        string(name: 'AWS_SECRET_KEY', defaultValue: '', description: 'AWS Secret Key')
+        string(name: 'AWS_REGION', defaultValue: 'us-east-1', description: 'AWS Region')
+        string(name: 'Email', defaultValue: '', description: 'Target Email Address')
+    }
+
+    stages {
+        stage('Delete Old Snapshots and Send Report') {
+            steps {
+                script {
+                    // Set up environment variables for AWS credentials and region
+                    withEnv([
+                        "AWS_ACCESS_KEY_ID=${params.AWS_ACCESS_KEY}",
+                        "AWS_SECRET_ACCESS_KEY=${params.AWS_SECRET_KEY}",
+                        "AWS_DEFAULT_REGION=${params.AWS_REGION}"
+                    ]) {
+                        // Execute the Python script
+                        sh '''
+                            python3 delete_old_snapshots.py
+                        '''
+                    }
+
+                    // Print a success message
+                    echo "Snapshot cleanup and report generation completed."
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            // Notify on success
+            echo "Pipeline succeeded. Report sent to ${params.Email}."
+        }
+        failure {
+            // Notify on failure
+            echo "Pipeline failed. Check the logs for details."
+        }
+    }
+}
